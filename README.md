@@ -1,25 +1,25 @@
 # Faster Qwen3-TTS
 
-Real-time Qwen3-TTS inference using CUDA graph capture. No Flash Attention, no vLLM, no Triton. Just `torch.cuda.CUDAGraph`. Supports both streaming and non-streaming generation.
+基于 CUDA Graph 捕获的实时 Qwen3-TTS 推理方案。不依赖 Flash Attention、不依赖 vLLM、也不依赖 Triton。核心只有 `torch.cuda.CUDAGraph`。同时支持流式与非流式生成。
 
-## Install
+## 安装
 
-Requires: Python 3.10+, PyTorch 2.5.1+, NVIDIA GPU with CUDA.
+要求：Python 3.10+、PyTorch 2.5.1+、带 CUDA 的 NVIDIA GPU。
 
 ```bash
 pip install faster-qwen3-tts
 ```
 
-**PyTorch compatibility note:** CUDA-graph capture in the fast path is not reliable on `torch<=2.5.0` for this project (capture can fail with "operation not permitted when stream is capturing"). We validated `2.5.1+` as working and set that as the minimum supported version.
+**PyTorch 兼容性说明：** 对这个项目来说，快速路径里的 CUDA Graph 捕获在 `torch<=2.5.0` 上并不稳定（捕获时可能报错 “operation not permitted when stream is capturing”）。我们验证过 `2.5.1+` 可以正常工作，因此将其设为最低支持版本。
 
-**Blackwell note:** RTX 50xx / Blackwell GPUs need CUDA 12.8 PyTorch wheels. If the default setup fails on those cards, install a `cu128` PyTorch build (PyTorch 2.7+).
+**Blackwell 说明：** RTX 50xx / Blackwell GPU 需要 CUDA 12.8 的 PyTorch wheel。如果默认安装失败，请改用 `cu128` 版本的 PyTorch（PyTorch 2.7+）。
 
-## Quick Start
+## 快速开始
 
 ### Python
 
 ```python
-from examples.audio import StreamPlayer  # helper from this repo's examples/
+from examples.audio import StreamPlayer  # 本仓库 examples/ 中的辅助类
 from faster_qwen3_tts import FasterQwen3TTS
 
 model = FasterQwen3TTS.from_pretrained("Qwen/Qwen3-TTS-12Hz-0.6B-Base")
@@ -30,36 +30,36 @@ ref_text = (
     "of training on verifiable outcomes is doomed."
 )
 
-# Streaming — yields audio chunks during generation
+# 流式生成：在生成过程中持续产出音频块
 play = StreamPlayer()
 try:
     for audio_chunk, sr, timing in model.generate_voice_clone_streaming(
         text="What do you mean that I'm not real?", language="English",
         ref_audio=ref_audio, ref_text=ref_text,
-        chunk_size=8,  # 8 steps ≈ 667ms of audio per chunk
+        chunk_size=8,  # 8 个 step 约等于 667ms 音频
     ):
         play(audio_chunk, sr)
 finally:
     play.close()
 
-# Non-streaming — returns all audio at once
+# 非流式生成：一次性返回全部音频
 audio_list, sr = model.generate_voice_clone(
     text="Hello world!", language="English",
     ref_audio=ref_audio, ref_text=ref_text,
 )
 ```
 
-For local speaker playback from a repo checkout with the example helper:
+如果你是在本仓库源码目录下本地播放说话人音频，并使用示例播放器辅助类：
 
 ```bash
 pip install sounddevice
 ```
 
-`examples/audio.py` contains a small `StreamPlayer` helper used by [`examples/streaming_playback.py`](examples/streaming_playback.py). It keeps one output stream open and queues chunks into it. A one-shot player such as `sounddevice.play(audio_chunk, sr)` restarts playback per chunk and can introduce gaps.
+`examples/audio.py` 中包含一个小型 `StreamPlayer` 辅助类，`examples/streaming_playback.py` 就使用了它。它会保持一个输出流持续打开，并把生成的音频块放进队列里播放。像 `sounddevice.play(audio_chunk, sr)` 这样的“一次播一块”方式会在每个 chunk 之间重新启动播放，容易出现断裂感。
 
 ### CLI
 
-Voice cloning (reference audio):
+语音克隆（参考音频）：
 
 ```bash
 faster-qwen3-tts clone \
@@ -71,7 +71,7 @@ faster-qwen3-tts clone \
   --output out.wav
 ```
 
-CustomVoice (predefined speaker IDs):
+CustomVoice（预设说话人 ID）：
 
 ```bash
 faster-qwen3-tts custom --model Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice --list-speakers
@@ -83,7 +83,7 @@ faster-qwen3-tts custom \
   --output out.wav
 ```
 
-VoiceDesign (instruction-based):
+VoiceDesign（基于指令生成声音）：
 
 ```bash
 faster-qwen3-tts design \
@@ -94,7 +94,7 @@ faster-qwen3-tts design \
   --output out.wav
 ```
 
-Streaming generation to a final WAV file (prints RTF after write):
+以流式方式生成并写入最终 WAV 文件（写入完成后会打印 RTF）：
 
 ```bash
 faster-qwen3-tts custom \
@@ -106,7 +106,7 @@ faster-qwen3-tts custom \
   --streaming
 ```
 
-Server mode (keep model hot, stop with `exit`):
+服务模式（保持模型常驻，输入 `exit` 退出）：
 
 ```bash
 faster-qwen3-tts serve \
@@ -119,19 +119,19 @@ faster-qwen3-tts serve \
 
 ### Demo UI
 
-A minimal web UI that streams audio in real time and shows TTFA and RTF live:
+一个极简 Web 界面，可实时流式播放音频，并实时显示 TTFA 与 RTF：
 
 ```bash
 pip install -e ".[demo]"
 python demo/server.py
-# open http://localhost:7860
+# 打开 http://localhost:7860
 ```
 
-Features: voice clone (upload any WAV or use your microphone), voice design (1.7B-VoiceDesign model), streaming/non-streaming toggle, adjustable chunk size, live TTFA/RTF metrics, WAV download.
+特性包括：语音克隆（可上传任意 WAV，或直接使用麦克风）、VoiceDesign（1.7B-VoiceDesign 模型）、流式/非流式切换、可调节 chunk size、实时 TTFA/RTF 指标、WAV 下载。
 
-### OpenAI-compatible API server
+### OpenAI 兼容 API 服务
 
-`examples/openai_server.py` exposes a `POST /v1/audio/speech` endpoint that follows the OpenAI TTS API contract, so it works out of the box with OpenWebUI, llama-swap, and any other OpenAI-compatible client.
+`examples/openai_server.py` 提供了一个 `POST /v1/audio/speech` 接口，遵循 OpenAI TTS API 协议，因此可以直接接入 OpenWebUI、llama-swap，以及其他任何兼容 OpenAI API 的客户端。
 
 ```bash
 pip install "faster-qwen3-tts[demo]"
@@ -148,13 +148,13 @@ curl http://localhost:8000/v1/audio/speech \
     --output speech.wav
 ```
 
-To expose multiple voices, pass a JSON file mapping names to reference audio configs — each `voice` value in a request will be routed to the matching entry (`--voices voices.json`). WAV and PCM formats stream chunks as they are generated; MP3 requires `pydub`.
+如果你想暴露多个声音，可以传入一个 JSON 文件，把名称映射到不同的参考音频配置；请求中的每个 `voice` 值都会路由到对应配置（使用 `--voices voices.json`）。WAV 和 PCM 格式会在生成过程中直接流式输出；MP3 则需要 `pydub`。
 
-## Results
+## 结果
 
-Benchmarks include tokenization + inference (apples-to-apples with baseline). RTF > 1.0 = faster than real-time. TTFA measured as time to first playable audio chunk using streaming (chunk_size=8).
+基准测试包含分词 + 推理全过程（与 baseline 公平对比）。RTF > 1.0 表示快于实时。TTFA 表示“首段可播放音频到达时间”，基于流式生成测得（`chunk_size=8`）。
 
-### 0.6B Model
+### 0.6B 模型
 
 | GPU | Baseline RTF | Baseline TTFA | CUDA Graphs RTF | CUDA Graphs TTFA | Speedup |
 |---|---|---|---|---|---|
@@ -164,7 +164,7 @@ Benchmarks include tokenization + inference (apples-to-apples with baseline). RT
 | RTX 4060 (Windows) | 0.23 | 2,697ms | **2.26** | **413ms** | 9.8x / 6.5x |
 | H100 80GB HBM3 | 0.435 | 1,474ms | **3.884** | **228ms** | 8.9x / 6.5x |
 
-### 1.7B Model
+### 1.7B 模型
 
 | GPU | Baseline RTF | Baseline TTFA | CUDA Graphs RTF | CUDA Graphs TTFA | Speedup |
 |---|---|---|---|---|---|
@@ -174,39 +174,39 @@ Benchmarks include tokenization + inference (apples-to-apples with baseline). RT
 | RTX 4060 (Windows) | 0.23 | 2,905ms | **1.83** | **460ms** | 7.9x / 6.3x |
 | H100 80GB HBM3 | 0.439 | 1,525ms | **3.304** | **241ms** | 7.5x / 6.3x |
 
-**Note:** Baseline TTFA values are **streaming TTFA** from the community `Qwen3-TTS-streaming` fork (which adds streaming) or from our **dynamic-cache parity streaming** path (no CUDA graphs) where available. The official `Qwen3-TTS` repo does **not** currently support streaming, so without a streaming baseline TTFA would be **time-to-full-audio**. CUDA graphs uses `generate_voice_clone_streaming(chunk_size=8)` for TTFA. Both include text tokenization for fair comparison. Speedup shows throughput / TTFA improvement. The streaming fork reports additional speedups that appear tied to `torch.compile`; we couldn’t reproduce those on Jetson-class devices where `torch.compile` isn’t available.
+**说明：** Baseline TTFA 来自社区版 `Qwen3-TTS-streaming` 分支（它增加了流式支持），或者在可用时来自我们的 **dynamic-cache parity streaming** 路径（不使用 CUDA graphs）。官方 `Qwen3-TTS` 仓库目前**不支持流式生成**，因此如果没有流式基线，TTFA 实际上只能等同于“整段音频完全生成完成的时间”。CUDA graphs 的 TTFA 使用 `generate_voice_clone_streaming(chunk_size=8)` 测得。两边都包含文本分词时间，以保证公平。Speedup 表示吞吐 / TTFA 的提升倍数。社区流式分支报告过一些额外加速，看起来和 `torch.compile` 有关；但我们在 Jetson 这类设备上无法复现，因为那上面通常无法使用 `torch.compile`。
 
-**GPU architecture notes:** RTX 4090 (2.5 GHz clocks) outperforms H100 (1.8 GHz) for single-stream workloads. H100's lower baseline (RTF 0.59 vs 4090's 0.82) reflects design optimization for batch processing rather than single-stream inference.
+**GPU 架构说明：** RTX 4090（2.5 GHz）在单路推理场景下快于 H100（1.8 GHz）。H100 的 baseline 更低（RTF 0.59 vs 4090 的 0.82），说明它更偏向批量处理优化，而不是单流推理。
 
-### Benchmark your hardware
+### 在你的硬件上运行基准
 
-Benchmarks run from source. You only need [uv](https://docs.astral.sh/uv/) and `./setup.sh`:
+基准测试需要从源码运行。你只需要 [uv](https://docs.astral.sh/uv/) 和 `./setup.sh`：
 
-**Linux / macOS / WSL:**
+**Linux / macOS / WSL：**
 
 ```bash
 git clone https://github.com/andimarafioti/faster-qwen3-tts
 cd faster-qwen3-tts
 ./setup.sh
-./benchmark.sh # or ./benchmark.sh 0.6B or ./benchmark.sh 1.7B for a single model
+./benchmark.sh # 或 ./benchmark.sh 0.6B 或 ./benchmark.sh 1.7B，仅测试单个模型
 ```
 
-**Windows (Native):**
+**Windows（原生）：**
 
 ```cmd
 git clone https://github.com/andimarafioti/faster-qwen3-tts
 cd faster-qwen3-tts
 setup_windows.bat
-benchmark_windows.bat   # or benchmark_windows.bat 0.6B / 1.7B / both
+benchmark_windows.bat   # 或 benchmark_windows.bat 0.6B / 1.7B / both
 ```
 
-Results are saved as `bench_results_<GPU_NAME>.json` and audio samples as `sample_0.6B.wav` / `sample_1.7B.wav`.
+结果会保存为 `bench_results_<GPU_NAME>.json`，音频样例会保存为 `sample_0.6B.wav` / `sample_1.7B.wav`。
 
-## Streaming
+## 流式生成
 
-CUDA graphs support streaming output — audio chunks are yielded during generation with the same per-step performance as non-streaming mode.
+CUDA graphs 支持流式输出：你可以在生成过程中持续拿到音频 chunk，而且每个 step 的性能与非流式模式一致。
 
-### Chunk size vs performance (Jetson AGX Orin, 0.6B)
+### chunk 大小与性能（Jetson AGX Orin，0.6B）
 
 | chunk_size | TTFA | RTF | Audio per chunk |
 |---|---|---|---|
@@ -217,9 +217,9 @@ CUDA graphs support streaming output — audio chunks are yielded during generat
 | 12 | 753ms | 1.449 | 1000ms |
 | Non-streaming | — | 1.57 | all at once |
 
-Smaller chunks = lower latency but more decode overhead. `chunk_size=2` is the smallest that stays real-time on Jetson.
+chunk 越小，延迟越低，但解码开销越高。`chunk_size=2` 是 Jetson 上仍能保持实时的最小值。
 
-**Model seed:** All the different model modes are effectively the same speed. The first time you clone a voice, it takes longer, but later it's cached. Use `benchmarks/compare_modes.py` to reproduce. Example on 0.6B, `chunk_size=8`:
+**模型模式速度对比：** 各种模型模式的速度实际上几乎一样。第一次进行语音克隆会稍慢一些，之后就会走缓存。可以使用 `benchmarks/compare_modes.py` 复现。下面是 0.6B、`chunk_size=8` 的示例：
 
 | Mode | TTFA (ms) | RTF | ms/step |
 | ---- | --------- | --- | ------- |
@@ -227,56 +227,58 @@ Smaller chunks = lower latency but more decode overhead. `chunk_size=2` is the s
 | VoiceClone full ICL | 149 ± 1 | 5.497 ± 0.026 | 15.2 ± 0.1 |
 | CustomVoice | 148 ± 1 | 5.537 ± 0.020 | 15.0 ± 0.1 |
 
-### How streaming works
+### 流式生成的工作方式
 
-The CUDA graphs are unchanged — both predictor and talker graphs are replayed per step. The streaming generator yields codec ID chunks every `chunk_size` steps, and the model wrapper decodes each chunk to audio using a sliding window with 25-frame left context (matching the upstream codec's `chunked_decode` pattern) to avoid boundary artifacts.
+CUDA graphs 本身没有变化：predictor 和 talker 两个 graph 在每个 step 都会被重放。流式生成器每经过 `chunk_size` 个 step 就产出一批 codec ID，随后模型封装层会用一个带 25 帧左上下文的滑动窗口把它们解码成音频（与上游 codec 的 `chunked_decode` 模式一致），从而避免 chunk 边界伪影。
 
-The Python streaming methods are pull-based generators: they prepare the next chunk when the caller requests it. For realtime local playback, use a queue-backed player such as `StreamPlayer`; blocking after each yielded chunk prevents generation and playback from overlapping.
+Python 层的流式方法是“拉取式”生成器：只有调用方请求下一个 chunk 时，它才会准备下一段。如果你要在本地做实时播放，建议使用像 `StreamPlayer` 这种基于队列的播放器；如果你在每次 yield 后都阻塞，生成和播放就无法重叠执行。
 
-## Voice Cloning Quality
+## 语音克隆质量
 
-### Cloning modes
+### 克隆模式
 
-`generate_voice_clone` exposes two modes via `xvec_only`:
+`generate_voice_clone` 通过 `xvec_only` 暴露了两种模式：
 
-| Mode | `xvec_only` | Notes |
+| Mode | `xvec_only` | 说明 |
 |---|---|---|
-| Simple (x-vector) | `True` | Speaker embedding only — shorter prefill, clean language switching, no `ref_text` needed |
-| Advanced (ICL) | `False` (default) | Full reference audio in context — requires accurate `ref_text`, may produce a brief artifact at the start since it literally continues the sentence `ref_wav` you use |
+| Simple (x-vector) | `True` | 仅使用说话人 embedding，prefill 更短，跨语言切换更干净，不需要 `ref_text` |
+| Advanced (ICL) | `False`（默认） | 将完整参考音频放入上下文，需要准确的 `ref_text`，并且因为会“接着参考音频末尾继续说”，开头可能出现一个很短的残留伪影 |
 
-The default now matches upstream Qwen3-TTS: ICL mode with the reference audio in context. X-vector-only mode remains available as an opt-in for cleaner language switching and shorter prefills.
+默认行为现在与上游 Qwen3-TTS 一致：使用带参考音频上下文的 ICL 模式。x-vector-only 模式仍然可选，适合需要更干净的语言切换和更短 prefill 的场景。
 
-### Decoder context (ICL mode)
+### 解码器上下文（ICL 模式）
 
-The 12 Hz codec uses a causal `chunked_decode`: each frame is reconstructed using prior frames as acoustic context. In ICL mode the reference audio codec tokens are prepended to the generated tokens before decoding, then the reference portion is trimmed from the output. Without this, the codec decoder starts cold with no voice context — the model generates the right tokens but they get reconstructed in the wrong voice. This is handled automatically.
+12 Hz codec 使用的是因果式 `chunked_decode`：每一帧的重建都会利用前面帧作为声学上下文。在 ICL 模式下，参考音频的 codec token 会先拼接到生成 token 前面再做解码，最后再把参考部分从输出中裁掉。如果不这么做，codec 解码器会在没有声音上下文的情况下“冷启动”——模型虽然生成了正确 token，但解码出来的声音会跑偏。这个过程已经自动处理好了。
 
-### Text input streaming vs Non-streaming quality
+### 文本输入的 streaming 与 non-streaming 质量差异
 
-The original Qwen3TTS implementation supports two mode of generation. It either takes the full input text and prepares the utterance, or it feeds the text progressively. This is the `non_streaming_mode` parameter in the generation methods. The name is maintained from the Qwen3TTS implementation, but I understand it might bring some headaches since here we also have general audio output streaming.
-The public API uses `non_streaming_mode=None` as a sentinel, which preserves each method's upstream default unless you override it explicitly.
-`generate_voice_clone` and `generate_voice_clone_streaming` resolve `None` to `False`, matching upstream step-by-step text feeding during decode.
-`generate_custom_voice`, `generate_custom_voice_streaming`, `generate_voice_design`, and `generate_voice_design_streaming` resolve `None` to `True`, matching the upstream CustomVoice and VoiceDesign defaults.
+原始 Qwen3TTS 实现支持两种文本送入模式：要么一次性给完整输入文本，让模型先准备整句再生成；要么在生成过程中逐步喂入文本。这就是生成方法中的 `non_streaming_mode` 参数。这个命名沿用了 Qwen3TTS 原实现，但这里我们同时还有“音频输出流式”这个概念，所以确实容易让人混淆。
 
-**Performance impact (RTX 4090, 1.7B, ICL, chunk_size=8):** TTFA is unchanged (≈159ms ± 1ms), and RTF is effectively the same (nsm=False: 4.87 ± 0.01, nsm=True: 4.85 ± 0.01).
+公共 API 使用 `non_streaming_mode=None` 作为哨兵值，这意味着：如果你不显式传参，就沿用各方法在上游中的默认行为。
 
-### Base-model instruct
+- `generate_voice_clone` 和 `generate_voice_clone_streaming` 会把 `None` 解析为 `False`，与上游在解码期间逐步送入文本的行为一致。
+- `generate_custom_voice`、`generate_custom_voice_streaming`、`generate_voice_design`、`generate_voice_design_streaming` 会把 `None` 解析为 `True`，与上游 CustomVoice 和 VoiceDesign 的默认行为一致。
 
-`instruct` is available on Base voice cloning, but treat it as experimental when used with `xvec_only=True`. In local testing and upstream-core probing, instruction-following behaved much more predictably in ICL mode (`xvec_only=False`) than in x-vector-only mode.
+**性能影响（RTX 4090，1.7B，ICL，chunk_size=8）：** TTFA 基本不变（≈159ms ± 1ms），RTF 也几乎一致（nsm=False: 4.87 ± 0.01，nsm=True: 4.85 ± 0.01）。
 
-### ICL Phoneme Artifact
+### Base 模型上的 instruct
 
-In ICL mode the model's prefill ends with the last codec token of the reference audio, so the first generated token is conditioned on whatever phoneme the reference ends on. If the reference ends mid-word, that phoneme bleeds into the generated speech.
+Base 语音克隆模式也支持 `instruct`，但如果与 `xvec_only=True` 一起使用，请把它视为实验特性。根据我们的本地测试以及对上游核心实现的探查，指令跟随在 ICL 模式（`xvec_only=False`）下明显比 x-vector-only 模式更稳定。
 
-**The fix is applied by default.** The wrapper appends 0.5 s of silence to the reference audio before encoding it, giving the model a clean starting point regardless of how the recording ends. Set `append_silence=False` to match the upstream behavior exactly.
+### ICL 音素残留伪影
 
-## Quality Samples
+在 ICL 模式下，模型的 prefill 会以参考音频的最后一个 codec token 结束，因此第一个生成 token 会受到参考音频末尾音素的直接影响。如果参考音频刚好停在单词中间，那么这个音素就会“渗”进生成语音的开头。
 
-### Quality Comparison: Qwen3TTS vs FasterQwen3TTS
+**这个修复默认已经开启。** 封装层会在编码前自动给参考音频末尾追加 0.5 秒静音，让模型无论面对什么结尾录音，都能从一个干净的静音起点开始生成。如果你想与上游行为完全一致，可以设置 `append_silence=False`。
 
-We provide side‑by‑side audio samples to compare **Qwen3TTS** (dynamic cache) against **FasterQwen3TTS** (static cache) for both CustomVoice and ICL/voice‑clone. The algorithms are equivalent, but the kernels and reduction order differ, so results are not bit‑identical; the samples let you judge the perceptual impact directly. All samples use the **1.7B** models and cap generation at ~14 seconds so the model can finish naturally.
+## 质量样例
 
-- `samples/parity/README.md` describes the prompts and model details
-- `samples/parity/*.wav` contain 2 voices × 2 prompts × {static,dynamic}
+### Qwen3TTS 与 FasterQwen3TTS 的质量对比
+
+我们提供了并排音频样例，用来比较 **Qwen3TTS**（dynamic cache）与 **FasterQwen3TTS**（static cache）在 CustomVoice 与 ICL / voice-clone 两类场景下的表现。两者算法等价，但底层 kernel 和归约顺序不同，因此结果并非 bit-identical；这些样例能帮助你直接判断主观听感差异。所有样例都使用 **1.7B** 模型，并把生成时长限制在约 14 秒，让模型自然完成句子。
+
+- `samples/parity/README.md` 说明了 prompt 和模型细节
+- `samples/parity/*.wav` 包含 2 个声音 × 2 个 prompt × {static,dynamic}
 
 **CustomVoice (aiden) – Prompt 1**
 
@@ -328,13 +330,13 @@ We provide side‑by‑side audio samples to compare **Qwen3TTS** (dynamic cache
 <audio controls src="samples/parity/icl_ref_audio_3_gen2_static.wav"></audio>
 <audio controls src="samples/parity/icl_ref_audio_3_gen2_dynamic.wav"></audio>
 
-### non_streaming_mode Comparison (ICL)
+### non_streaming_mode 对比（ICL）
 
-We provide side‑by‑side samples comparing **non_streaming_mode=False** vs **True** for ICL voice cloning.
-All samples use the **1.7B** model with `xvec_only=False`.
+我们也提供了并排音频样例，用来比较 ICL 语音克隆里 **non_streaming_mode=False** 与 **True** 的差异。
+所有样例都使用 **1.7B** 模型，并设置 `xvec_only=False`。
 
-- `samples/non_streaming_mode/README.md` describes prompts, settings, and filenames
-- `samples/non_streaming_mode/*.wav` contain 3 references × 2 prompts × {nsm_false,nsm_true}
+- `samples/non_streaming_mode/README.md` 说明了 prompts、参数和文件名格式
+- `samples/non_streaming_mode/*.wav` 包含 3 份参考音频 × 2 个 prompt × {nsm_false,nsm_true}
 
 **ICL (ref_audio.wav) – Prompt 1**
 
@@ -366,48 +368,49 @@ All samples use the **1.7B** model with `xvec_only=False`.
 <audio controls src="samples/non_streaming_mode/icl_ref_audio_3_gen2_nsm_false.wav"></audio>
 <audio controls src="samples/non_streaming_mode/icl_ref_audio_3_gen2_nsm_true.wav"></audio>
 
-## Parity
+## 一致性（Parity）
 
-We maintain parity with upstream Qwen3‑TTS in two layers, and document where (and why) the fast path can differ numerically. When we say **Qwen3TTS vs FasterQwen3TTS**, we are comparing the upstream dynamic‑cache path against our static‑cache CUDA‑graph path.
+我们用两层方式保持与上游 Qwen3‑TTS 的一致性，并明确记录快速路径为什么会在数值上出现差异。当我们提到 **Qwen3TTS vs FasterQwen3TTS** 时，指的是上游的 dynamic-cache 路径与我们基于 static-cache + CUDA-graph 的快速路径之间的对比。
 
-- **Fast path (static cache + CUDA graphs):** Streaming and non‑streaming share the same decode core and match upstream for the initial window where artifacts are most audible. Tests enforce this prefix parity deterministically.
-- **Parity mode (dynamic cache, tests only):** A dynamic‑cache decode path (no CUDA graphs) that calls `talker.generate(...)` is used in tests to prove exact token‑level equality against upstream for all model types.
+- **快速路径（static cache + CUDA graphs）：** 流式与非流式共享同一套 decode 核心，并且在最容易听出伪影的起始窗口里与上游保持一致。测试会以确定性方式验证这段前缀的一致性。
+- **Parity 模式（dynamic cache，仅用于测试）：** 使用一条不带 CUDA graphs 的 dynamic-cache decode 路径，并调用 `talker.generate(...)`，以证明所有模型类型在 token 级别都能与上游完全一致。
 
-**Why can static cache differ from dynamic cache?** The math is equivalent, but the kernel path is not. Static cache uses a fixed max‑length KV buffer and an explicit attention mask, which often selects a different SDPA kernel than the dynamic cache path (shorter K/V, `is_causal=True`, mask‑free). In BF16/TF32, different kernel/reduction orders are not bit‑exact, so the outputs can differ slightly even when the algorithm is the same.
+**为什么 static cache 会和 dynamic cache 有差异？** 数学上它们是等价的，但底层 kernel 路径并不一样。Static cache 使用固定最大长度的 KV buffer 和显式 attention mask，因此往往会选中与 dynamic cache 不同的 SDPA kernel；而 dynamic cache 使用更短的 K/V，通常搭配 `is_causal=True` 和无 mask 路径。在 BF16/TF32 下，不同 kernel / 不同归约顺序并不是 bit-exact 的，所以即使算法相同，输出也可能有轻微差异。
 
-**Parity streaming note:** The dynamic‑cache parity streaming path is intentionally slow. On an RTX 4090 it measured ~0.77s TTFA (chunk_size=8) and ~1.17s TTFA (chunk_size=12), versus ~0.16–0.18s TTFA in the fast CUDA‑graph path. Use parity streaming only for validation, not performance.
+**Parity streaming 说明：** dynamic-cache 的 parity streaming 路径是刻意保留的慢实现。在 RTX 4090 上，`chunk_size=8` 时 TTFA 约为 ~0.77s，`chunk_size=12` 时约为 ~1.17s；而快速 CUDA-graph 路径只有 ~0.16–0.18s。Parity streaming 仅用于校验，不应用于性能场景。
 
-Tests live in `tests/test_e2e_parity.py` and cover:
+测试位于 `tests/test_e2e_parity.py`，覆盖内容包括：
 
-- Voice clone (x‑vector) prefix parity vs upstream
-- Streaming vs non‑streaming parity (fast path)
-- CustomVoice full equality (parity mode)
-- VoiceDesign full equality (parity mode)
-- Voice clone ICL full equality (parity mode)
+- Voice clone（x-vector）与上游的前缀一致性
+- 流式 vs 非流式的一致性（快速路径）
+- CustomVoice 完全一致（parity 模式）
+- VoiceDesign 完全一致（parity 模式）
+- Voice clone ICL 完全一致（parity 模式）
 
-You can control the model IDs used by tests via environment variables:
+你可以通过环境变量控制测试使用的模型 ID：
 
 ```
 QWEN_TTS_MODEL=Qwen/Qwen3-TTS-12Hz-0.6B-Base
 QWEN_TTS_CUSTOM_MODEL=Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
 QWEN_TTS_VOICE_DESIGN_MODEL=Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
 ```
-## How It Works
 
-Qwen3-TTS runs two autoregressive transformers per decode step:
-1. **Talker** (28 layers): generates the first codebook token from text
-2. **Code Predictor** (5 layers): generates 15 additional codebook tokens
+## 原理
 
-A single step involves ~500 small CUDA kernel launches with Python overhead between them. The GPU spends more time waiting for the next kernel than computing.
+Qwen3-TTS 在每个解码 step 中会运行两个自回归 Transformer：
+1. **Talker**（28 层）：根据文本生成第一个 codebook token
+2. **Code Predictor**（5 层）：继续生成另外 15 个 codebook token
 
-CUDA graphs capture the entire decode step and replay it as a single GPU operation:
+单个 step 会触发大约 500 个很小的 CUDA kernel 启动，而 Python 会夹在这些启动之间引入开销。GPU 花在等待下一个 kernel 的时间，往往比真正计算的时间还多。
 
-1. **Static KV cache**: pre-allocated fixed-size tensors (no dynamic allocation)
-2. **Model's own forward**: SDPA + RoPE via the model's native attention layers
-3. **Graph capture**: `torch.cuda.CUDAGraph` for both predictor and talker
-4. **Padded attention**: attention mask handles variable-length KV within fixed buffers
+CUDA graphs 会把整个 decode step 捕获下来，并把它作为一次 GPU 操作进行重放：
 
-### Per-component breakdown (Jetson AGX Orin, 0.6B)
+1. **Static KV cache：** 预分配固定大小 tensor（不再动态分配）
+2. **模型自身 forward：** 通过模型原生注意力层完成 SDPA + RoPE
+3. **Graph capture：** 对 predictor 与 talker 都使用 `torch.cuda.CUDAGraph`
+4. **Padded attention：** 通过 attention mask 在固定 buffer 内处理可变长度 KV
+
+### 组件级拆解（Jetson AGX Orin，0.6B）
 
 | Component | Before | After |
 |---|---|---|
@@ -416,29 +419,28 @@ CUDA graphs capture the entire decode step and replay it as a single GPU operati
 | Overhead | 65ms | 16ms |
 | **Total per step** | **330ms** | **54ms** |
 
-## Voice Cloning with Precomputed Speaker Embeddings
+## 使用预计算 speaker embedding 进行语音克隆
 
-For production use, extract the speaker embedding once and reuse it:
+如果是生产环境，建议把 speaker embedding 提前提取一次，然后重复复用：
 
 ```bash
-# 1. Extract speaker embedding from reference audio (one-time, ~10s)
+# 1. 从参考音频提取 speaker embedding（一次性，约 10 秒）
 python examples/extract_speaker.py --ref_audio voice.wav --output speaker.pt
 
-# 2. Generate speech with CUDA graphs (real-time)
+# 2. 使用 CUDA graphs 实时生成语音
 python examples/generate_with_embedding.py --speaker speaker.pt --text "Hello!" --language English --output en.wav
 python examples/generate_with_embedding.py --speaker speaker.pt --text "Bonjour!" --language French --output fr.wav
 python examples/generate_with_embedding.py --speaker speaker.pt --text "Hallo!" --language German --output de.wav
 ```
 
-The speaker embedding is a 4KB file (2048-dim bf16 vector). In `x_vector_only` mode:
-- **No accent bleed**: native pronunciation per language
-- **Shorter prefill**: 10 tokens vs ~80+ in full ICL clone mode
-- **No ref audio at runtime**: just the 4KB embedding file
+这个 speaker embedding 是一个 4KB 文件（2048 维 bf16 向量）。在 `x_vector_only` 模式下：
+- **没有口音串扰：** 每种语言都能保持更自然的原生发音
+- **prefill 更短：** 10 个 token，而不是完整 ICL 克隆模式中的约 80+ 个
+- **运行时不需要参考音频：** 只需要这个 4KB 的 embedding 文件
 
-You can now pass a precomputed prompt directly to the public APIs. The wrapper
-accepts either:
-- the raw `prompt_items` list returned by `create_voice_clone_prompt(...)`
-- or the lower-level dict form produced by `_prompt_items_to_voice_clone_prompt(...)`
+现在你也可以把预先计算好的 prompt 直接传给公共 API。封装层接受两种形式：
+- `create_voice_clone_prompt(...)` 返回的原始 `prompt_items` 列表
+- 或 `_prompt_items_to_voice_clone_prompt(...)` 生成的底层 dict 形式
 
 ```python
 import torch
@@ -446,21 +448,21 @@ from faster_qwen3_tts import FasterQwen3TTS
 
 model = FasterQwen3TTS.from_pretrained("Qwen/Qwen3-TTS-12Hz-1.7B-Base")
 
-# 1) Compute prompt_items once from reference audio
+# 1) 先从参考音频计算一次 prompt_items
 prompt_items = model.model.create_voice_clone_prompt(
     ref_audio="voice.wav",
     ref_text="",
     x_vector_only_mode=True,
 )
 
-# 2) You can pass prompt_items directly
+# 2) 可以直接把 prompt_items 传进去
 audio_list, sr = model.generate_voice_clone(
     text="Hello world!",
     language="English",
     voice_clone_prompt=prompt_items,
 )
 
-# 3) Or save just the speaker embedding and rebuild the compact dict form
+# 3) 或者只保存 speaker embedding，并重建更紧凑的 dict 形式
 spk_emb = prompt_items[0].ref_spk_embedding
 
 torch.save(spk_emb.detach().cpu(), "speaker.pt")
@@ -478,18 +480,17 @@ audio_list, sr = model.generate_voice_clone(
 )
 ```
 
-When `voice_clone_prompt` is provided, prompt extraction from `ref_audio` is skipped.
-For x-vector-only prompts, `ref_text` is ignored.
-For ICL precomputed prompts, pass `x_vector_only_mode=[False]`, `icl_mode=[True]`,
-and a non-`None` `ref_code`, and keep `ref_text` populated.
+当提供 `voice_clone_prompt` 后，就会跳过从 `ref_audio` 中提取 prompt 的步骤。
+对于 x-vector-only prompt，`ref_text` 会被忽略。
+对于预计算的 ICL prompt，请传入 `x_vector_only_mode=[False]`、`icl_mode=[True]`，以及非 `None` 的 `ref_code`，并确保 `ref_text` 已正确填充。
 
 ## License
 
 MIT
 
-## Acknowledgments
+## 致谢
 
 - [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) by the Qwen team
-- [Qwen3-TTS-streaming](https://github.com/dffdeeq/Qwen3-TTS-streaming) for ideas and code we adapted for streaming
-- [nano-qwen3tts-vllm](https://github.com/tsdocode/nano-qwen3tts-vllm) for inspiration on CUDA graph usage
-- NVIDIA for providing the Jetson AGX Orin board
+- [Qwen3-TTS-streaming](https://github.com/dffdeeq/Qwen3-TTS-streaming) 提供了我们在流式支持中借鉴和改造的思路与代码
+- [nano-qwen3tts-vllm](https://github.com/tsdocode/nano-qwen3tts-vllm) 为 CUDA graph 的使用提供了灵感
+- NVIDIA 提供了 Jetson AGX Orin 开发板

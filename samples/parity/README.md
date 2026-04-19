@@ -1,14 +1,14 @@
-# Parity Sample Set
+# Parity 样例集
 
-These samples compare **Qwen3TTS** (dynamic cache) against **FasterQwen3TTS** (static cache). The algorithms are equivalent, but the attention kernel choice differs, so outputs may not be bit-identical. Use these to compare subjective quality and sentence completion.
+这些样例用于对比 **Qwen3TTS**（dynamic cache）与 **FasterQwen3TTS**（static cache）。两者算法等价，但 attention kernel 的选择不同，因此输出不一定完全 bit-identical。你可以借助这些样例比较主观听感质量与句子完成度。
 
-## CustomVoice Samples
+## CustomVoice 样例
 
-- Model: `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice` (1.7B)
-- Language: `English`
-- Speakers: `aiden`, `serena`
-- Generation: `max_new_tokens=168` (~14s), `min_new_tokens=2`, `temperature=0.9`, `top_k=50`, `top_p=1.0`, `repetition_penalty=1.05`
-- RNG seed: `1337`
+- 模型：`Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`（1.7B）
+- 语言：`English`
+- 说话人：`aiden`、`serena`
+- 生成参数：`max_new_tokens=168`（约 14 秒）、`min_new_tokens=2`、`temperature=0.9`、`top_k=50`、`top_p=1.0`、`repetition_penalty=1.05`
+- 随机种子：`1337`
 
 ## CustomVoice Prompts
 
@@ -20,52 +20,52 @@ These samples compare **Qwen3TTS** (dynamic cache) against **FasterQwen3TTS** (s
 1. "We met at the corner cafe after work and talked about weekend plans. The street was quiet, the lights were warm, and the time passed quickly. We stayed a bit longer."
 2. "On Tuesday morning I missed the bus, so I walked home through the park. I took the long path and listened to the wind in the trees before heading back. I took my time."
 
-## Files
+## 文件列表
 
-- Voice `aiden`, prompt 1:
+- 声音 `aiden`，prompt 1：
   - `custom_aiden_gen1_static.wav`
   - `custom_aiden_gen1_dynamic.wav`
-- Voice `aiden`, prompt 2:
+- 声音 `aiden`，prompt 2：
   - `custom_aiden_gen2_static.wav`
   - `custom_aiden_gen2_dynamic.wav`
-- Voice `serena`, prompt 1:
+- 声音 `serena`，prompt 1：
   - `custom_serena_gen1_static.wav`
   - `custom_serena_gen1_dynamic.wav`
-- Voice `serena`, prompt 2:
+- 声音 `serena`，prompt 2：
   - `custom_serena_gen2_static.wav`
   - `custom_serena_gen2_dynamic.wav`
 
-## ICL (Voice Clone) Samples
+## ICL（语音克隆）样例
 
-- Model: `Qwen/Qwen3-TTS-12Hz-1.7B-Base` (1.7B)
-- Language: `English`
-- Reference audios: `ref_audio.wav`, `ref_audio_2.wav`, `ref_audio_3.wav`
-- Reference text: auto‑transcribed with `nano-parakeet` unless `PARITY_REF_TEXT(_2)` is provided. See `samples/parity/icl_transcripts.txt`.
-- Generation: `max_new_tokens=168` (~14s), `min_new_tokens=2`, `temperature=0.9`, `top_k=50`, `top_p=1.0`, `repetition_penalty=1.05`
-- RNG seed: `1337`
+- 模型：`Qwen/Qwen3-TTS-12Hz-1.7B-Base`（1.7B）
+- 语言：`English`
+- 参考音频：`ref_audio.wav`、`ref_audio_2.wav`、`ref_audio_3.wav`
+- 参考文本：默认使用 `nano-parakeet` 自动转写，除非显式提供 `PARITY_REF_TEXT(_2)`。详见 `samples/parity/icl_transcripts.txt`。
+- 生成参数：`max_new_tokens=168`（约 14 秒）、`min_new_tokens=2`、`temperature=0.9`、`top_k=50`、`top_p=1.0`、`repetition_penalty=1.05`
+- 随机种子：`1337`
 
-Files:
+文件：
 
-- Ref `ref_audio.wav`, prompt 1:
+- 参考 `ref_audio.wav`，prompt 1：
   - `icl_ref_audio_gen1_static.wav`
   - `icl_ref_audio_gen1_dynamic.wav`
-- Ref `ref_audio.wav`, prompt 2:
+- 参考 `ref_audio.wav`，prompt 2：
   - `icl_ref_audio_gen2_static.wav`
   - `icl_ref_audio_gen2_dynamic.wav`
-- Ref `ref_audio_2.wav`, prompt 1:
+- 参考 `ref_audio_2.wav`，prompt 1：
   - `icl_ref_audio_2_gen1_static.wav`
   - `icl_ref_audio_2_gen1_dynamic.wav`
-- Ref `ref_audio_2.wav`, prompt 2:
+- 参考 `ref_audio_2.wav`，prompt 2：
   - `icl_ref_audio_2_gen2_static.wav`
   - `icl_ref_audio_2_gen2_dynamic.wav`
-- Ref `ref_audio_3.wav`, prompt 1:
+- 参考 `ref_audio_3.wav`，prompt 1：
   - `icl_ref_audio_3_gen1_static.wav`
   - `icl_ref_audio_3_gen1_dynamic.wav`
-- Ref `ref_audio_3.wav`, prompt 2:
+- 参考 `ref_audio_3.wav`，prompt 2：
   - `icl_ref_audio_3_gen2_static.wav`
   - `icl_ref_audio_3_gen2_dynamic.wav`
 
-## Regenerate
+## 重新生成样例
 
 ```bash
 source .venv/bin/activate
@@ -73,7 +73,7 @@ python benchmarks/generate_parity_samples.py
 python benchmarks/generate_parity_samples_icl.py
 ```
 
-You can override the model or speakers via environment variables:
+你也可以通过环境变量覆盖模型或说话人：
 
 ```bash
 QWEN_TTS_CUSTOM_MODEL=Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice \
@@ -83,7 +83,7 @@ PARITY_MIN_NEW_TOKENS=2 \
 python benchmarks/generate_parity_samples.py
 ```
 
-ICL regeneration (optional overrides):
+ICL 重新生成（可选覆盖项）：
 
 ```bash
 QWEN_TTS_MODEL=Qwen/Qwen3-TTS-12Hz-1.7B-Base \

@@ -1,75 +1,75 @@
-# Windows Setup Guide for Faster Qwen3-TTS
+# Faster Qwen3-TTS Windows 安装指南
 
-The original `setup.sh` script is designed for Unix/Linux systems. This guide provides instructions for setting up and running Faster Qwen3-TTS natively on Windows.
+原始的 `setup.sh` 脚本是为 Unix / Linux 系统准备的。本指南说明如何在 Windows 原生环境下安装并运行 Faster Qwen3-TTS。
 
-## Quick Start (Recommended)
+## 快速开始（推荐）
 
-### 1. Run the Setup Script
-Open Command Prompt and navigate to the project directory, then run:
+### 1. 运行安装脚本
+打开命令提示符（Command Prompt），切换到项目目录后执行：
 
 ```cmd
 setup_windows.bat
 ```
 
-This script will:
-- Detect if `uv` is installed (recommended for 10x faster setup)
-- Create a virtual environment (`.venv`)
-- Install all dependencies (including PyTorch with CUDA)
-- Pre-download the Qwen3-TTS models
-- Generate a placeholder `ref_audio.wav`
+这个脚本会自动完成以下工作：
+- 检查是否已安装 `uv`（推荐，可显著加快安装速度）
+- 创建虚拟环境（`.venv`）
+- 安装全部依赖（包括带 CUDA 的 PyTorch）
+- 预先下载 Qwen3-TTS 模型
+- 生成一个占位用的 `ref_audio.wav`
 
-### 2. Run the Benchmark
-After setup completes, you can run the benchmark:
+### 2. 运行基准测试
+安装完成后，你可以执行基准测试：
 
 ```cmd
 benchmark_windows.bat
 ```
 
-Additional usage for the benchmark:
+基准脚本的其他用法：
 ```cmd
-benchmark_windows.bat 0.6B    # Benchmark only the 0.6B model
-benchmark_windows.bat 1.7B    # Benchmark only the 1.7B model
-benchmark_windows.bat custom  # Benchmark CustomVoice mode
-benchmark_windows.bat both    # Benchmark both (default)
+benchmark_windows.bat 0.6B    # 只测试 0.6B 模型
+benchmark_windows.bat 1.7B    # 只测试 1.7B 模型
+benchmark_windows.bat custom  # 测试 CustomVoice 模式
+benchmark_windows.bat both    # 同时测试两个模型（默认）
 ```
 
-## Manual Setup
+## 手动安装
 
-If you prefer to set up manually:
+如果你希望手动完成安装，可以使用下面的步骤：
 
 ```cmd
-# Create virtual environment
+# 创建虚拟环境
 python -m venv .venv
 
-# Activate it
+# 激活虚拟环境
 .venv\Scripts\activate
 
-# Install dependencies
+# 安装依赖
 pip install --upgrade pip
 pip install -e .
 
-# Install flash-attn (optional, requires compiler)
+# 安装 flash-attn（可选，需要编译环境）
 pip install flash-attn
 
-# Download models
+# 下载模型
 python -c "from huggingface_hub import snapshot_download; [snapshot_download(f'Qwen/{m}') for m in ['Qwen3-TTS-12Hz-0.6B-Base', 'Qwen3-TTS-12Hz-1.7B-Base']]"
 ```
 
-## Troubleshooting
+## 故障排查
 
-### CUDA Issues
-If `setup_windows.bat` warns that CUDA is not available:
-1. Verify you have an NVIDIA GPU and recent drivers.
-2. Run `nvidia-smi` to check CUDA support.
-3. You may need to manually install the CUDA version of PyTorch:
+### CUDA 问题
+如果 `setup_windows.bat` 提示 CUDA 不可用：
+1. 确认你的机器配有 NVIDIA GPU，并安装了较新的驱动。
+2. 运行 `nvidia-smi` 检查 CUDA 是否正常可用。
+3. 你可能需要手动安装 CUDA 版本的 PyTorch：
    ```cmd
-   .venv\Scripts\pip install \"torch>=2.7.0\" --index-url https://download.pytorch.org/whl/cu128
+   .venv\Scripts\pip install "torch>=2.7.0" --index-url https://download.pytorch.org/whl/cu128
    ```
-4. RTX 50xx / Blackwell GPUs need CUDA 12.8 PyTorch wheels.
+4. RTX 50xx / Blackwell GPU 需要 CUDA 12.8 的 PyTorch wheel。
 
-### Python Not Found
-Ensure Python 3.10 or later is installed and added to your system PATH.
+### 找不到 Python
+请确认系统已安装 Python 3.10 或更高版本，并且已经加入系统 PATH。
 
-## Performance Notes
-- **CUDA Required**: For real-time performance, an NVIDIA GPU is required.
-- **uv**: Highly recommended for faster installation. Install it via `pip install uv` or from [astral.sh](https://docs.astral.sh/uv/).
+## 性能说明
+- **必须使用 CUDA：** 如果想达到实时性能，必须配备 NVIDIA GPU。
+- **推荐使用 uv：** 它能显著提升安装速度。可以通过 `pip install uv` 安装，或前往 [astral.sh](https://docs.astral.sh/uv/) 获取。

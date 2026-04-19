@@ -16,19 +16,19 @@ preload_from_hub:
   - Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
 ---
 
-# Faster Qwen3-TTS Demo
+# Faster Qwen3-TTS 演示
 
-This Space hosts the demo UI for **faster-qwen3-tts** with streaming audio, TTFA/RTF metrics, voice clone, custom voices, and voice design.
+这个 Space 托管了 **faster-qwen3-tts** 的演示界面，支持流式音频、TTFA/RTF 指标展示、语音克隆、自定义声音以及 VoiceDesign。
 
-## Run locally (no Docker)
+## 本地运行（不使用 Docker）
 
 ```bash
 pip install "faster-qwen3-tts[demo]"
 python server.py --model Qwen/Qwen3-TTS-12Hz-0.6B-Base
-# open http://localhost:7860
+# 打开 http://localhost:7860
 ```
 
-## Run with Docker
+## 使用 Docker 运行
 
 ```bash
 docker build -t faster-qwen3-tts-demo .
